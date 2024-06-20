@@ -11,13 +11,22 @@ import { fileTypes } from "./schema";
 import { Doc, Id } from "./_generated/dataModel";
 
 export const generateUploadUrl = mutation(async (ctx) => {
-  const identity = await ctx.auth.getUserIdentity();
+  try {
+    const identity = await ctx.auth.getUserIdentity();
+    console.log('User identity:', identity);
 
-  if (!identity) {
-    throw new ConvexError("you must be logged in to upload a file");
+    if (!identity) {
+      console.error("User identity is null. Ensure you are logged in and the token is valid.");
+      throw new ConvexError("You must be logged in to upload a file");
+    }
+
+    const uploadUrl = await ctx.storage.generateUploadUrl();
+    console.log('Generated upload URL:', uploadUrl);
+    return uploadUrl;
+  } catch (error) {
+    console.error('Error generating upload URL:', error);
+    throw new ConvexError("An error occurred while generating the upload URL");
   }
-
-  return await ctx.storage.generateUploadUrl();
 });
 
 export async function hasAccessToOrg(
@@ -30,12 +39,7 @@ export async function hasAccessToOrg(
     return null;
   }
 
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_tokenIdentifier", (q) =>
-      q.eq("tokenIdentifier", identity.tokenIdentifier)
-    )
-    .first();
+  const user = await getUser(ctx, identity.tokenIdentifier);
 
   if (!user) {
     return null;
@@ -154,7 +158,7 @@ function assertCanDeleteFile(user: Doc<"users">, file: Doc<"files">) {
     user.orgIds.find((org) => org.orgId === file.orgId)?.role === "admin";
 
   if (!canDelete) {
-    throw new ConvexError("you have no acces to delete this file");
+    throw new ConvexError("you have no access to delete this file");
   }
 }
 

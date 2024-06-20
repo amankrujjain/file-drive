@@ -3,7 +3,7 @@
 export default {
   providers: [
     {
-      domain: "https://devoted-treefrog-81.clerk.accounts.dev",
+      domain: "https://summary-shrew-19.clerk.accounts.dev",
       applicationID: "convex",
     },
   ],
